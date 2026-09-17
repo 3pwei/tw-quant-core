@@ -23,6 +23,7 @@ jobs:
           test "${GITHUB_REF_NAME}" = "v${PACKAGE_VERSION}"
       - run: python -m build
       - run: python -m pip install dist/*.whl
+      - run: python -m pip install -e ".[test]"
       - run: python -m pytest -q
       - uses: actions/upload-artifact@v4
         with:
