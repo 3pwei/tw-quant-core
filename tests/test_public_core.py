@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 
-import tw_quant
-from tw_quant.backtest import run_backtest
-from tw_quant.market import KBar
-from tw_quant.paper import PaperAccount, PaperFill
-from tw_quant.replay import ReplayEngine
-from tw_quant.strategy import MovingAverageCross, StrategyRuntime
+import tw_quant_core
+from tw_quant_core.backtest import run_backtest
+from tw_quant_core.market import KBar
+from tw_quant_core.paper import PaperAccount, PaperFill
+from tw_quant_core.replay import ReplayEngine
+from tw_quant_core.strategy import MovingAverageCross, StrategyRuntime
 
 
 def bars():
@@ -36,7 +36,7 @@ def bars():
 
 
 def test_package_imports():
-    assert tw_quant.StrategyRuntime
+    assert tw_quant_core.StrategyRuntime
 
 
 def test_backtest_and_replay_are_standalone():
