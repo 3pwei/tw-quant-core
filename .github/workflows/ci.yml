@@ -18,3 +18,23 @@ jobs:
         run: |
           ! find . -type f \( -name '*.p12' -o -name '*.pfx' -o -name '*.pem' -o -name '*.key' -o -name 'credentials.env' \) -print -quit | grep .
           ! grep -RIE '(api[_-]?key|secret[_-]?key|password)[[:space:]]*=[[:space:]]*[^<{$]' --exclude-dir=.git --exclude='*.md' .
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build
+      - run: python -m build
+      - name: Install wheel in a clean environment
+        run: |
+          python -m venv /tmp/tw-quant-core-smoke
+          /tmp/tw-quant-core-smoke/bin/python -m pip install dist/*.whl
+          cd /tmp
+          /tmp/tw-quant-core-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.0.0'"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/

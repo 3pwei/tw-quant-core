@@ -35,3 +35,20 @@ This repository contains reusable public engineering only. It intentionally excl
 A private production system may depend on a versioned release of this package. This package never imports or requires private production code.
 
 See [Architecture](docs/architecture.md) and [Public repository security](docs/security.md).
+
+## Stable API and releases
+
+Version 1.0 defines the supported import namespaces and follows Semantic
+Versioning. Import contracts from the package namespaces rather than their
+implementation modules. See the [Public API policy](docs/public-api.md),
+[changelog](CHANGELOG.md), and [release procedure](RELEASING.md).
+
+Build and verify distributable artifacts with:
+
+```bash
+python -m pip install build
+python -m build
+python -m venv /tmp/tw-quant-core-smoke
+/tmp/tw-quant-core-smoke/bin/python -m pip install dist/*.whl
+/tmp/tw-quant-core-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.0.0'"
+```
