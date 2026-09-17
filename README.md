@@ -20,10 +20,12 @@ python -m pip install -e ".[test]"
 python -m pytest -q
 ```
 
+The distribution uses the independent `tw_quant_core` import namespace so it can coexist with private applications that retain a legacy `tw_quant` package.
+
 The package imports independently:
 
 ```bash
-python -c "import tw_quant"
+python -c "import tw_quant_core"
 ```
 
 ## Security and dependency boundary
