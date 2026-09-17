@@ -1,0 +1,379 @@
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, field
+from datetime import date, datetime
+from hashlib import sha256
+import json
+from typing import Literal, TypeAlias
+
+
+EventKind = Literal[
+    "market",
+    "bar_closed",
+    "signal",
+    "order_intent",
+    "order_status",
+    "risk_decision",
+    "fill",
+    "position",
+    "session",
+]
+Direction = Literal["long", "short"]
+OrderSide = Literal["buy", "sell"]
+
+
+def _require_aware(value: datetime, field_name: str) -> None:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError(f"{field_name} must be timezone-aware")
+
+
+def deterministic_event_id(
+    kind: EventKind,
+    occurred_at: datetime,
+    source: str,
+    source_key: str,
+) -> str:
+    """Return a stable event ID for the same source fact across restarts/replays."""
+    _require_aware(occurred_at, "occurred_at")
+    if not source or not source_key:
+        raise ValueError("source and source_key are required")
+    raw = "|".join((kind, occurred_at.isoformat(timespec="microseconds"), source, source_key))
+    return sha256(raw.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class EventMetadata:
+    event_id: str
+    occurred_at: datetime
+    source: str
+    correlation_id: str | None = None
+    causation_id: str | None = None
+    owner_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.event_id or not self.source:
+            raise ValueError("event_id and source are required")
+        _require_aware(self.occurred_at, "occurred_at")
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        kind: EventKind,
+        occurred_at: datetime,
+        source: str,
+        source_key: str,
+        correlation_id: str | None = None,
+        causation_id: str | None = None,
+        owner_id: str | None = None,
+    ) -> "EventMetadata":
+        event_id = deterministic_event_id(kind, occurred_at, source, source_key)
+        return cls(
+            event_id=event_id,
+            occurred_at=occurred_at,
+            source=source,
+            correlation_id=correlation_id or event_id,
+            causation_id=causation_id,
+            owner_id=owner_id,
+        )
+
+
+@dataclass(frozen=True)
+class MarketEvent:
+    meta: EventMetadata
+    symbol: str
+    contract: str
+    price: float
+    volume: int
+    kind: Literal["market"] = field(default="market", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.symbol or not self.contract:
+            raise ValueError("symbol and contract are required")
+        if self.price <= 0:
+            raise ValueError("price must be positive")
+        if self.volume < 0:
+            raise ValueError("volume cannot be negative")
+
+
+@dataclass(frozen=True)
+class BarClosedEvent:
+    meta: EventMetadata
+    symbol: str
+    contract: str
+    timeframe: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    session: Literal["day", "night"]
+    trading_date: date
+    kind: Literal["bar_closed"] = field(default="bar_closed", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.symbol or not self.contract or not self.timeframe:
+            raise ValueError("symbol, contract, and timeframe are required")
+        if min(self.open, self.high, self.low, self.close) <= 0:
+            raise ValueError("OHLC prices must be positive")
+        if self.high < max(self.open, self.close) or self.low > min(self.open, self.close):
+            raise ValueError("invalid OHLC range")
+        if self.volume < 0:
+            raise ValueError("volume cannot be negative")
+
+
+@dataclass(frozen=True)
+class SignalEvent:
+    meta: EventMetadata
+    strategy_id: str
+    strategy_version: int
+    symbol: str
+    contract: str
+    direction: Direction
+    action: Literal["enter", "exit"]
+    reference_price: float
+    reason: str
+    stop_loss_price: float | None = None
+    trading_date: date | None = None
+    kind: Literal["signal"] = field(default="signal", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.strategy_id or not self.symbol or not self.contract:
+            raise ValueError("strategy_id, symbol, and contract are required")
+        if self.strategy_version < 1:
+            raise ValueError("strategy_id and positive strategy_version are required")
+        if self.reference_price <= 0:
+            raise ValueError("reference_price must be positive")
+        if self.stop_loss_price is not None and self.stop_loss_price <= 0:
+            raise ValueError("stop_loss_price must be positive when provided")
+
+
+@dataclass(frozen=True)
+class OrderIntent:
+    meta: EventMetadata
+    order_id: str
+    strategy_id: str
+    strategy_version: int
+    symbol: str
+    contract: str
+    side: OrderSide
+    quantity: int
+    order_type: Literal["market"] = "market"
+    purpose: Literal["entry", "exit", "liquidation"] = "entry"
+    execution_timing: Literal[
+        "next_bar_open", "current_close", "signal_price", "bar_trigger"
+    ] = "next_bar_open"
+    reduce_only: bool = False
+    reason: str = "strategy_signal"
+    reference_price: float = 0.0
+    stop_loss_price: float | None = None
+    stop_loss_pct: float | None = None
+    take_profit_pct: float | None = None
+    strategy_snapshot: dict[str, object] | None = None
+    trading_date: date | None = None
+    client_order_id: str | None = None
+    order_source: Literal["manual", "strategy_auto"] = "manual"
+    runtime_id: str | None = None
+    decision_id: str | None = None
+    kind: Literal["order_intent"] = field(default="order_intent", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.order_id or not self.strategy_id or not self.symbol or not self.contract:
+            raise ValueError("order_id, strategy_id, symbol, and contract are required")
+        if self.strategy_version < 1 or self.quantity <= 0:
+            raise ValueError("strategy_version and quantity must be positive")
+        if not self.reason:
+            raise ValueError("reason is required")
+        if self.reference_price < 0:
+            raise ValueError("reference_price cannot be negative")
+        if self.stop_loss_price is not None and self.stop_loss_price <= 0:
+            raise ValueError("stop_loss_price must be positive when provided")
+        for name in ("stop_loss_pct", "take_profit_pct"):
+            value = getattr(self, name)
+            if value is not None and not 0 < value < 1:
+                raise ValueError(f"{name} must be between 0 and 1 when provided")
+        if self.execution_timing == "bar_trigger" and not (
+            self.reduce_only and self.order_source == "strategy_auto"
+        ):
+            raise ValueError(
+                "bar_trigger execution is reserved for strategy_auto reduce-only orders"
+            )
+        if self.client_order_id is not None and (
+            not self.client_order_id.strip() or len(self.client_order_id) > 128
+        ):
+            raise ValueError("client_order_id must contain 1 to 128 characters")
+        if self.order_source == "strategy_auto" and not (
+            self.runtime_id and self.decision_id
+        ):
+            raise ValueError(
+                "strategy_auto orders require runtime_id and decision_id"
+            )
+
+
+@dataclass(frozen=True)
+class OrderStatusEvent:
+    meta: EventMetadata
+    order_id: str
+    status: Literal["rejected"]
+    reason: str
+    kind: Literal["order_status"] = field(default="order_status", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.order_id or not self.reason:
+            raise ValueError("order_id and reason are required")
+
+
+@dataclass(frozen=True)
+class RiskDecision:
+    meta: EventMetadata
+    order_id: str
+    approved: bool
+    approved_quantity: int
+    reason: str
+    estimated_risk: float | None = None
+    reference_price: float | None = None
+    phase: Literal["initial", "prefill"] = "initial"
+    kind: Literal["risk_decision"] = field(default="risk_decision", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.order_id or not self.reason:
+            raise ValueError("order_id and reason are required")
+        if self.approved_quantity < 0:
+            raise ValueError("approved_quantity cannot be negative")
+        if self.approved and self.approved_quantity == 0:
+            raise ValueError("approved decisions require a positive quantity")
+        if not self.approved and self.approved_quantity != 0:
+            raise ValueError("rejected decisions must have zero quantity")
+        if self.estimated_risk is not None and self.estimated_risk < 0:
+            raise ValueError("estimated_risk cannot be negative")
+        if self.reference_price is not None and self.reference_price <= 0:
+            raise ValueError("reference_price must be positive when provided")
+
+
+@dataclass(frozen=True)
+class FillEvent:
+    meta: EventMetadata
+    fill_id: str
+    order_id: str
+    strategy_id: str
+    strategy_version: int
+    symbol: str
+    contract: str
+    side: OrderSide
+    quantity: int
+    price: float
+    commission: float = 0.0
+    tax: float = 0.0
+    slippage: float = 0.0
+    purpose: Literal["entry", "exit", "liquidation"] = "entry"
+    reason: str = "simulated_fill"
+    trading_date: date | None = None
+    order_source: Literal["manual", "strategy_auto"] = "manual"
+    runtime_id: str | None = None
+    decision_id: str | None = None
+    stop_loss_price: float | None = None
+    take_profit_price: float | None = None
+    strategy_snapshot: dict[str, object] | None = None
+    kind: Literal["fill"] = field(default="fill", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.fill_id or not self.order_id or not self.strategy_id:
+            raise ValueError("fill_id, order_id, and strategy_id are required")
+        if self.strategy_version < 1:
+            raise ValueError("strategy_version must be positive")
+        if self.quantity <= 0 or self.price <= 0:
+            raise ValueError("quantity and price must be positive")
+        if min(self.commission, self.tax, self.slippage) < 0:
+            raise ValueError("fill costs cannot be negative")
+        for name in ("stop_loss_price", "take_profit_price"):
+            value = getattr(self, name)
+            if value is not None and value <= 0:
+                raise ValueError(f"{name} must be positive when provided")
+
+
+@dataclass(frozen=True)
+class PositionEvent:
+    meta: EventMetadata
+    strategy_id: str
+    strategy_version: int
+    symbol: str
+    contract: str
+    quantity: int
+    average_price: float
+    realized_pnl: float
+    unrealized_pnl: float
+    total_cost: float = 0.0
+    order_source: Literal["manual", "strategy_auto"] = "manual"
+    runtime_id: str | None = None
+    decision_id: str | None = None
+    entry_fill_price: float | None = None
+    stop_loss_price: float | None = None
+    take_profit_price: float | None = None
+    strategy_snapshot: dict[str, object] | None = None
+    kind: Literal["position"] = field(default="position", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.strategy_id or not self.symbol or not self.contract:
+            raise ValueError("strategy_id, symbol, and contract are required")
+        if self.strategy_version < 1:
+            raise ValueError("strategy_version must be positive")
+        if self.quantity != 0 and self.average_price <= 0:
+            raise ValueError("open positions require a positive average_price")
+        if self.quantity == 0 and self.average_price != 0:
+            raise ValueError("flat positions must have zero average_price")
+        if self.total_cost < 0:
+            raise ValueError("total_cost cannot be negative")
+        for name in ("entry_fill_price", "stop_loss_price", "take_profit_price"):
+            value = getattr(self, name)
+            if value is not None and value <= 0:
+                raise ValueError(f"{name} must be positive when provided")
+
+
+@dataclass(frozen=True)
+class SessionEvent:
+    meta: EventMetadata
+    symbol: str
+    contract: str
+    session: Literal["day", "night"]
+    trading_date: date
+    action: Literal["opened", "closing", "closed"]
+    kind: Literal["session"] = field(default="session", init=False)
+
+    def __post_init__(self) -> None:
+        if not self.symbol or not self.contract:
+            raise ValueError("symbol and contract are required")
+
+
+DomainEvent: TypeAlias = (
+    MarketEvent
+    | BarClosedEvent
+    | SignalEvent
+    | OrderIntent
+    | OrderStatusEvent
+    | RiskDecision
+    | FillEvent
+    | PositionEvent
+    | SessionEvent
+)
+
+
+def _json_compatible(value: object) -> object:
+    if isinstance(value, datetime):
+        return value.isoformat(timespec="microseconds")
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {key: _json_compatible(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_compatible(item) for item in value]
+    return value
+
+
+def event_to_dict(event: DomainEvent) -> dict[str, object]:
+    """Serialize an event to JSON-compatible primitives for audit storage/APIs."""
+    payload = _json_compatible(asdict(event))
+    assert isinstance(payload, dict)
+    payload["kind"] = event.kind
+    # Fail early if a future event adds a value that is not audit-log serializable.
+    json.dumps(payload, sort_keys=True)
+    return payload
