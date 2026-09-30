@@ -25,6 +25,34 @@ from tw_quant_core.market import KBar, TickEvent
 from tw_quant_core.strategy import Decision, Strategy, StrategyRuntime
 ```
 
+## Strategy and plugin contracts added in 1.1
+
+The `tw_quant_core.strategy` namespace exports these broker/platform-neutral
+contract groups:
+
+- Identity and catalog: `PluginArtifactIdentity`, `StrategyIdentity`,
+  `StrategyReference`, `StrategyDescriptor`, `StrategyCapability`
+- Parameter metadata: `ParameterField`, `ParameterKind`,
+  `ParameterSchemaMetadata`, `ParameterValidationResult`
+- Evaluation: `StrategyEvaluationRequest`, `StrategyIntent`,
+  `StrategyEvaluationResult`
+- Analysis: `DiagnosticRecord`, `StrategyAnalysisResult`
+- Composition: `CompositeMember`, `CompositeEvaluationRequest`
+- Integration: `StrategyPluginProvider`, `StrategyRegistry`, and typed
+  fail-closed registry errors
+
+The registry only resolves exact identities registered by the application
+composition root. It does not discover, install, import by user-supplied name,
+or download plugins. Unknown plugin/artifact/strategy/schema versions,
+unadvertised capabilities, invalid parameters, and mismatched provider result
+identities raise registry errors. Strategy intents are not executable orders;
+risk approval and order construction remain outside strategy plugins.
+
+Parameter fields intentionally have no default-value member. Providers may
+publish only display-safe schema metadata and must not expose production
+parameters or proprietary implementation logic through descriptors or
+diagnostics.
+
 ## Compatibility
 
 This project follows Semantic Versioning from 1.0 onward.
@@ -39,6 +67,14 @@ This project follows Semantic Versioning from 1.0 onward.
   commitments.
 - Deprecations remain available for at least one minor release and emit a
   `DeprecationWarning` before removal in the next major release.
+
+### Deprecated in 1.1
+
+`MovingAverageCross` and `CompositeStrategy` remain exported with their 1.0
+constructor and evaluation behavior. Instantiation emits `DeprecationWarning`.
+They are retained for the full 1.1 line and may be removed only in 2.0 or a
+later major release. `Decision`, `Strategy`, and `StrategyRuntime` remain
+unchanged.
 
 Anything not exported from a documented namespace, including underscore-prefixed
 names and implementation modules, may change without notice. Serialization is

@@ -1,6 +1,6 @@
 [project]
 name = "tw-quant-core"
-version = "1.0.0"
+version = "1.1.0"
 description = "Broker-neutral quantitative trading core"
 readme = "README.md"
 requires-python = ">=3.11"

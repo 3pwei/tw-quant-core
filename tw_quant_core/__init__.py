@@ -7,7 +7,30 @@ and ``risk`` namespaces. Undocumented implementation modules are internal.
 
 from importlib.metadata import PackageNotFoundError, version
 
-from .strategy import CompositeStrategy, Decision, Strategy, StrategyRuntime
+from .strategy import (
+    CompositeEvaluationRequest,
+    CompositeMember,
+    CompositeStrategy,
+    Decision,
+    DiagnosticRecord,
+    ParameterField,
+    ParameterKind,
+    ParameterSchemaMetadata,
+    ParameterValidationResult,
+    PluginArtifactIdentity,
+    Strategy,
+    StrategyAnalysisResult,
+    StrategyCapability,
+    StrategyDescriptor,
+    StrategyEvaluationRequest,
+    StrategyEvaluationResult,
+    StrategyIdentity,
+    StrategyIntent,
+    StrategyPluginProvider,
+    StrategyReference,
+    StrategyRegistry,
+    StrategyRuntime,
+)
 
 try:
     __version__ = version("tw-quant-core")
@@ -16,8 +39,26 @@ except PackageNotFoundError:  # pragma: no cover - source tree without installat
 
 __all__ = [
     "CompositeStrategy",
+    "CompositeEvaluationRequest",
+    "CompositeMember",
     "Decision",
+    "DiagnosticRecord",
+    "ParameterField",
+    "ParameterKind",
+    "ParameterSchemaMetadata",
+    "ParameterValidationResult",
+    "PluginArtifactIdentity",
     "Strategy",
+    "StrategyAnalysisResult",
+    "StrategyCapability",
+    "StrategyDescriptor",
+    "StrategyEvaluationRequest",
+    "StrategyEvaluationResult",
+    "StrategyIdentity",
+    "StrategyIntent",
+    "StrategyPluginProvider",
+    "StrategyReference",
+    "StrategyRegistry",
     "StrategyRuntime",
     "__version__",
 ]

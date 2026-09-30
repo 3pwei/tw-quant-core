@@ -2,7 +2,16 @@
 
 All notable changes follow Semantic Versioning.
 
-## 1.0.0 - Unreleased
+## 1.1.0 - Unreleased
+
+- Add exact-version strategy identity, descriptor, parameter-schema, intent,
+  diagnostics, composite-evaluation, plugin-provider, and registry contracts.
+- Fail closed when a plugin, artifact, strategy, schema version, capability, or
+  provider result identity is unknown or inconsistent.
+- Deprecate `MovingAverageCross` and `CompositeStrategy` with runtime warnings;
+  retain both exports until the next major release.
+
+## 1.0.0
 
 - Declare the stable Public Core namespaces and compatibility policy.
 - Mark the distribution as typed and expose its installed version.

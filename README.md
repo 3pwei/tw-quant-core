@@ -8,7 +8,8 @@ A standalone, broker-neutral quantitative trading core for deterministic event p
 - Market, session, quote, and timeframe models
 - Backtest and Replay engines
 - Paper account and simulated execution
-- Strategy protocol, runtime, composition, and synthetic example strategy
+- Strategy protocol/runtime plus versioned descriptor, intent, diagnostics,
+  composite, registry, and plugin-provider contracts
 - Broker-neutral ports, models, capabilities, registry, and execution targets
 - Generic risk calculations
 - Public tests and CI security checks
@@ -50,5 +51,10 @@ python -m pip install build
 python -m build
 python -m venv /tmp/tw-quant-core-smoke
 /tmp/tw-quant-core-smoke/bin/python -m pip install dist/*.whl
-/tmp/tw-quant-core-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.0.0'"
+/tmp/tw-quant-core-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.1.0'"
 ```
+
+`MovingAverageCross` and `CompositeStrategy` remain import-compatible in 1.1
+but emit `DeprecationWarning` when instantiated. Concrete strategy behavior is
+moving behind the plugin contracts and these two exports may only be removed in
+the next major release.
