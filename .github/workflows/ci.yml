@@ -33,7 +33,7 @@ jobs:
           python -m venv /tmp/tw-quant-core-smoke
           /tmp/tw-quant-core-smoke/bin/python -m pip install dist/*.whl
           cd /tmp
-          /tmp/tw-quant-core-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.0.0'"
+          /tmp/tw-quant-core-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.1.0'"
       - uses: actions/upload-artifact@v4
         with:
           name: python-distributions
