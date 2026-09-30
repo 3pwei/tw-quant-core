@@ -2,7 +2,7 @@
 
 All notable changes follow Semantic Versioning.
 
-## 1.1.0 - Unreleased
+## 1.1.0 - 2026-10-01
 
 - Add exact-version strategy identity, descriptor, parameter-schema, intent,
   diagnostics, composite-evaluation, plugin-provider, and registry contracts.
