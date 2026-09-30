@@ -1,5 +1,63 @@
-"""Public strategy protocol, runtime, composition, and examples."""
+"""Public, broker-neutral strategy and plugin contracts."""
 
+from .contracts import (
+    CompositeEvaluationRequest,
+    CompositeMember,
+    DiagnosticRecord,
+    ParameterField,
+    ParameterKind,
+    ParameterSchemaMetadata,
+    ParameterValidationResult,
+    PluginArtifactIdentity,
+    StrategyAnalysisResult,
+    StrategyCapability,
+    StrategyDescriptor,
+    StrategyEvaluationRequest,
+    StrategyEvaluationResult,
+    StrategyIdentity,
+    StrategyIntent,
+    StrategyReference,
+)
 from .core import CompositeStrategy, Decision, MovingAverageCross, Strategy, StrategyRuntime
+from .plugins import StrategyPluginProvider
+from .registry import (
+    StrategyCapabilityError,
+    StrategyParameterError,
+    StrategyPluginContractError,
+    StrategyRegistry,
+    StrategyRegistryError,
+    UnknownPluginError,
+    UnknownStrategyError,
+)
 
-__all__ = ["CompositeStrategy", "Decision", "MovingAverageCross", "Strategy", "StrategyRuntime"]
+__all__ = [
+    "CompositeEvaluationRequest",
+    "CompositeMember",
+    "CompositeStrategy",
+    "Decision",
+    "DiagnosticRecord",
+    "MovingAverageCross",
+    "ParameterField",
+    "ParameterKind",
+    "ParameterSchemaMetadata",
+    "ParameterValidationResult",
+    "PluginArtifactIdentity",
+    "Strategy",
+    "StrategyAnalysisResult",
+    "StrategyCapability",
+    "StrategyCapabilityError",
+    "StrategyDescriptor",
+    "StrategyEvaluationRequest",
+    "StrategyEvaluationResult",
+    "StrategyIdentity",
+    "StrategyIntent",
+    "StrategyParameterError",
+    "StrategyPluginContractError",
+    "StrategyPluginProvider",
+    "StrategyReference",
+    "StrategyRegistry",
+    "StrategyRegistryError",
+    "StrategyRuntime",
+    "UnknownPluginError",
+    "UnknownStrategyError",
+]
