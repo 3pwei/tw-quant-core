@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Iterable, Literal, Protocol, Sequence
+from warnings import warn
 
 from ..market import KBar
 
@@ -33,6 +34,14 @@ class StrategyRuntime:
 class CompositeStrategy:
     strategies: Iterable[Strategy]
 
+    def __post_init__(self) -> None:
+        warn(
+            "CompositeStrategy is deprecated in 1.1 and will be removed in 2.0; "
+            "use the StrategyPluginProvider composite evaluation contract",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     def evaluate(self, bars: Sequence[KBar]) -> Decision:
         decisions = [strategy.evaluate(bars) for strategy in self.strategies]
         active = [decision for decision in decisions if decision.side != "flat"]
@@ -51,6 +60,12 @@ class MovingAverageCross:
     quantity: int = 1
 
     def __post_init__(self) -> None:
+        warn(
+            "MovingAverageCross is deprecated in 1.1 and will be removed in 2.0; "
+            "concrete strategies belong in a separate strategy plugin",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if self.fast_window < 1 or self.slow_window <= self.fast_window:
             raise ValueError("require 1 <= fast_window < slow_window")
         if self.quantity < 1:
