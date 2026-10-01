@@ -1,12 +1,17 @@
 """Public, broker-neutral strategy and plugin contracts."""
 
 from .contracts import (
+    CompositeAnalysisRequest,
     CompositeEvaluationRequest,
     CompositeMember,
     DiagnosticRecord,
     ParameterField,
     ParameterKind,
+    ParameterNormalizationRequest,
+    ParameterNormalizationResult,
     ParameterSchemaMetadata,
+    ParameterTemplateRequest,
+    ParameterTemplateResult,
     ParameterValidationResult,
     PluginArtifactIdentity,
     StrategyAnalysisResult,
@@ -19,7 +24,12 @@ from .contracts import (
     StrategyReference,
 )
 from .core import CompositeStrategy, Decision, MovingAverageCross, Strategy, StrategyRuntime
-from .plugins import StrategyPluginProvider
+from .plugins import (
+    StrategyCompositeAnalysisProvider,
+    StrategyParameterNormalizationProvider,
+    StrategyParameterTemplateProvider,
+    StrategyPluginProvider,
+)
 from .registry import (
     StrategyCapabilityError,
     StrategyParameterError,
@@ -31,6 +41,7 @@ from .registry import (
 )
 
 __all__ = [
+    "CompositeAnalysisRequest",
     "CompositeEvaluationRequest",
     "CompositeMember",
     "CompositeStrategy",
@@ -39,19 +50,26 @@ __all__ = [
     "MovingAverageCross",
     "ParameterField",
     "ParameterKind",
+    "ParameterNormalizationRequest",
+    "ParameterNormalizationResult",
     "ParameterSchemaMetadata",
+    "ParameterTemplateRequest",
+    "ParameterTemplateResult",
     "ParameterValidationResult",
     "PluginArtifactIdentity",
     "Strategy",
     "StrategyAnalysisResult",
     "StrategyCapability",
     "StrategyCapabilityError",
+    "StrategyCompositeAnalysisProvider",
     "StrategyDescriptor",
     "StrategyEvaluationRequest",
     "StrategyEvaluationResult",
     "StrategyIdentity",
     "StrategyIntent",
+    "StrategyParameterNormalizationProvider",
     "StrategyParameterError",
+    "StrategyParameterTemplateProvider",
     "StrategyPluginContractError",
     "StrategyPluginProvider",
     "StrategyReference",
