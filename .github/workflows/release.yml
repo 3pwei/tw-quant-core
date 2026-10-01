@@ -21,16 +21,53 @@ jobs:
         run: |
           PACKAGE_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           test "${GITHUB_REF_NAME}" = "v${PACKAGE_VERSION}"
+      - run: python -m pip install -e ".[test]"
+      - run: python -m pytest -q
       - run: python -m build
-      - name: Install wheel in a clean environment
+      - name: Verify wheel version and v1.2 public imports in a clean environment
         run: |
+          PACKAGE_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           python -m venv /tmp/tw-quant-core-release-smoke
           /tmp/tw-quant-core-release-smoke/bin/python -m pip install dist/*.whl
           cd /tmp
-          /tmp/tw-quant-core-release-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.1.0'"
-      - run: python -m pip install -e ".[test]"
-      - run: python -m pytest -q
+          /tmp/tw-quant-core-release-smoke/bin/python - "${PACKAGE_VERSION}" <<'PY'
+          import sys
+
+          import tw_quant_core
+          import tw_quant_core.strategy as strategy_api
+          from tw_quant_core.strategy import (
+              CompositeAnalysisRequest,
+              ParameterNormalizationRequest,
+              ParameterNormalizationResult,
+              ParameterTemplateRequest,
+              ParameterTemplateResult,
+              StrategyCompositeAnalysisProvider,
+              StrategyParameterNormalizationProvider,
+              StrategyParameterTemplateProvider,
+          )
+
+          assert tw_quant_core.__version__ == sys.argv[1]
+          assert all(
+              export.__name__ in tw_quant_core.__all__
+              and export.__name__ in strategy_api.__all__
+              and getattr(tw_quant_core, export.__name__) is export
+              and getattr(strategy_api, export.__name__) is export
+              for export in (
+                  CompositeAnalysisRequest,
+                  ParameterNormalizationRequest,
+                  ParameterNormalizationResult,
+                  ParameterTemplateRequest,
+                  ParameterTemplateResult,
+                  StrategyCompositeAnalysisProvider,
+                  StrategyParameterNormalizationProvider,
+                  StrategyParameterTemplateProvider,
+              )
+          )
+          PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tw-quant-core-${{ github.ref_name }}
-          path: dist/
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
