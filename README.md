@@ -9,7 +9,8 @@ A standalone, broker-neutral quantitative trading core for deterministic event p
 - Backtest and Replay engines
 - Paper account and simulated execution
 - Strategy protocol/runtime plus versioned descriptor, intent, diagnostics,
-  composite, registry, and plugin-provider contracts
+  parameter normalization/template, composite evaluation/analysis, registry,
+  and plugin-provider contracts
 - Broker-neutral ports, models, capabilities, registry, and execution targets
 - Generic risk calculations
 - Public tests and CI security checks
@@ -51,10 +52,29 @@ python -m pip install build
 python -m build
 python -m venv /tmp/tw-quant-core-smoke
 /tmp/tw-quant-core-smoke/bin/python -m pip install dist/*.whl
-/tmp/tw-quant-core-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.1.0'"
+/tmp/tw-quant-core-smoke/bin/python -c "import tw_quant_core; assert tw_quant_core.__version__ == '1.2.0'"
 ```
 
-`MovingAverageCross` and `CompositeStrategy` remain import-compatible in 1.1
+`MovingAverageCross` and `CompositeStrategy` remain import-compatible in 1.2
 but emit `DeprecationWarning` when instantiated. Concrete strategy behavior is
 moving behind the plugin contracts and these two exports may only be removed in
 the next major release.
+
+## Optional strategy capabilities in 1.2
+
+Core 1.2 adds immutable envelopes for provider-owned parameter normalization,
+runtime parameter templates, and composite analysis. Providers advertise each
+optional operation through `StrategyCapability` and implement its separate
+optional Protocol. The v1.1 `StrategyPluginProvider` Protocol is unchanged, so
+existing v1.1-compatible providers retain their evaluation, analysis, and
+composite-evaluation behavior without implementing the new ports.
+
+The Registry verifies exact plugin artifact, strategy, schema, capability, and
+result identity before accepting an optional result. An advertised operation
+without its optional port fails closed; Core does not fall back, dynamically
+discover providers, or supply strategy defaults.
+
+Demo case IDs, synthetic TMF cases, scenario catalogs, and concrete strategies
+are product-specific application concerns. A future Public Platform may expose
+them through an application-level `DemoProvider`; Core intentionally supplies
+no Demo implementation or Demo catalog.

@@ -305,13 +305,19 @@ def test_public_api_document_lists_new_contracts() -> None:
         encoding="utf-8"
     )
     required_names = {
+        "CompositeAnalysisRequest",
         "PluginArtifactIdentity",
+        "ParameterNormalizationResult",
+        "ParameterTemplateResult",
         "StrategyDescriptor",
         "ParameterSchemaMetadata",
         "StrategyEvaluationResult",
         "StrategyAnalysisResult",
         "CompositeEvaluationRequest",
         "StrategyPluginProvider",
+        "StrategyCompositeAnalysisProvider",
+        "StrategyParameterNormalizationProvider",
+        "StrategyParameterTemplateProvider",
         "StrategyRegistry",
     }
     assert all(name in documentation for name in required_names)

@@ -3,7 +3,12 @@ from __future__ import annotations
 from typing import Mapping, Protocol, Sequence, runtime_checkable
 
 from .contracts import (
+    CompositeAnalysisRequest,
     CompositeEvaluationRequest,
+    ParameterNormalizationRequest,
+    ParameterNormalizationResult,
+    ParameterTemplateRequest,
+    ParameterTemplateResult,
     ParameterValidationResult,
     PluginArtifactIdentity,
     StrategyAnalysisResult,
@@ -42,3 +47,33 @@ class StrategyPluginProvider(Protocol):
         self,
         request: CompositeEvaluationRequest,
     ) -> StrategyEvaluationResult: ...
+
+
+@runtime_checkable
+class StrategyParameterNormalizationProvider(StrategyPluginProvider, Protocol):
+    """Optional port for provider-owned parameter canonicalization."""
+
+    def normalize_parameters(
+        self,
+        request: ParameterNormalizationRequest,
+    ) -> ParameterNormalizationResult: ...
+
+
+@runtime_checkable
+class StrategyParameterTemplateProvider(StrategyPluginProvider, Protocol):
+    """Optional port for provider-owned runtime configuration templates."""
+
+    def parameter_template(
+        self,
+        request: ParameterTemplateRequest,
+    ) -> ParameterTemplateResult: ...
+
+
+@runtime_checkable
+class StrategyCompositeAnalysisProvider(StrategyPluginProvider, Protocol):
+    """Optional port for provider-owned composite analysis semantics."""
+
+    def analyze_composite(
+        self,
+        request: CompositeAnalysisRequest,
+    ) -> StrategyAnalysisResult: ...

@@ -2,6 +2,26 @@
 
 All notable changes follow Semantic Versioning.
 
+## 1.2.0 - Unreleased
+
+- Add exact-identity immutable parameter-normalization request/result contracts
+  for provider-owned alias handling, optional-value normalization, and runtime
+  materialization.
+- Add provider-owned parameter-template envelopes without placing strategy
+  defaults or proprietary values in Core.
+- Add broker-neutral composite-analysis requests that reuse exact strategy
+  references, composite members, diagnostics, and analysis results while
+  leaving topology and signal semantics to strategy providers.
+- Add normalization, template, and composite-analysis capabilities through
+  separate optional provider Protocols; keep the v1.1 `StrategyPluginProvider`
+  Protocol unchanged.
+- Make Registry dispatch for new optional operations fail closed on missing
+  capability/port, unknown artifact/strategy/schema, invalid normalized or
+  template parameters, and mismatched result identity, without fallback or
+  dynamic discovery.
+- Document that reusable Demo envelopes need no Core implementation and that
+  product-specific cases belong in a future Platform-level `DemoProvider`.
+
 ## 1.1.0 - 2026-10-01
 
 - Add exact-version strategy identity, descriptor, parameter-schema, intent,

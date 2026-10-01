@@ -19,6 +19,26 @@ def _immutable_mapping(value: Mapping[str, object]) -> Mapping[str, object]:
     return MappingProxyType(dict(value))
 
 
+def _immutable_payload(value: object) -> object:
+    """Copy a provider payload into recursively immutable containers."""
+
+    if isinstance(value, Mapping):
+        return MappingProxyType(
+            {key: _immutable_payload(item) for key, item in value.items()}
+        )
+    if isinstance(value, (list, tuple)):
+        return tuple(_immutable_payload(item) for item in value)
+    if isinstance(value, (set, frozenset)):
+        return frozenset(_immutable_payload(item) for item in value)
+    return value
+
+
+def _immutable_payload_mapping(value: Mapping[str, object]) -> Mapping[str, object]:
+    return MappingProxyType(
+        {key: _immutable_payload(item) for key, item in value.items()}
+    )
+
+
 @dataclass(frozen=True, order=True)
 class PluginArtifactIdentity:
     """Exact identity of one installed, pre-approved strategy artifact."""
@@ -120,6 +140,9 @@ class StrategyCapability(str, Enum):
     EVALUATE = "evaluate"
     ANALYZE = "analyze"
     COMPOSITE_EVALUATE = "composite_evaluate"
+    NORMALIZE_PARAMETERS = "normalize_parameters"
+    PARAMETER_TEMPLATE = "parameter_template"
+    COMPOSITE_ANALYZE = "composite_analyze"
 
 
 @dataclass(frozen=True)
@@ -152,6 +175,90 @@ class ParameterValidationResult:
         object.__setattr__(self, "errors", errors)
         if self.valid == bool(errors):
             raise ValueError("valid results have no errors; invalid results require errors")
+
+
+@dataclass(frozen=True)
+class ParameterNormalizationRequest:
+    """Request a provider-owned canonical parameter snapshot."""
+
+    reference: StrategyReference
+    parameter_schema_version: str
+    supplied_parameters: Mapping[str, object]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "parameter_schema_version",
+            _required(self.parameter_schema_version, "parameter_schema_version"),
+        )
+        object.__setattr__(
+            self,
+            "supplied_parameters",
+            _immutable_payload_mapping(self.supplied_parameters),
+        )
+
+
+@dataclass(frozen=True)
+class ParameterNormalizationResult:
+    """Provider-owned immutable canonicalization result with exact identity."""
+
+    reference: StrategyReference
+    parameter_schema_version: str
+    supplied_parameters: Mapping[str, object]
+    normalized_parameters: Mapping[str, object]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "parameter_schema_version",
+            _required(self.parameter_schema_version, "parameter_schema_version"),
+        )
+        object.__setattr__(
+            self,
+            "supplied_parameters",
+            _immutable_payload_mapping(self.supplied_parameters),
+        )
+        object.__setattr__(
+            self,
+            "normalized_parameters",
+            _immutable_payload_mapping(self.normalized_parameters),
+        )
+
+
+@dataclass(frozen=True)
+class ParameterTemplateRequest:
+    """Request a runtime-supplied configuration template for an exact schema."""
+
+    reference: StrategyReference
+    parameter_schema_version: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "parameter_schema_version",
+            _required(self.parameter_schema_version, "parameter_schema_version"),
+        )
+
+
+@dataclass(frozen=True)
+class ParameterTemplateResult:
+    """Immutable provider-owned template values for an exact strategy schema."""
+
+    reference: StrategyReference
+    parameter_schema_version: str
+    template_parameters: Mapping[str, object]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "parameter_schema_version",
+            _required(self.parameter_schema_version, "parameter_schema_version"),
+        )
+        object.__setattr__(
+            self,
+            "template_parameters",
+            _immutable_payload_mapping(self.template_parameters),
+        )
 
 
 @dataclass(frozen=True)
@@ -281,13 +388,59 @@ class CompositeEvaluationRequest:
             "evaluator_parameters",
             _immutable_mapping(self.evaluator_parameters),
         )
-        object.__setattr__(self, "composite_id", _required(self.composite_id, "composite_id"))
+        object.__setattr__(
+            self,
+            "composite_id",
+            _required(self.composite_id, "composite_id"),
+        )
         if self.composite_version < 1:
             raise ValueError("composite_version must be positive")
         object.__setattr__(self, "members", tuple(self.members))
         object.__setattr__(self, "bars", tuple(self.bars))
         if not self.members:
             raise ValueError("composite evaluation requires at least one member")
+        member_ids = [member.member_id for member in self.members]
+        if len(member_ids) != len(set(member_ids)):
+            raise ValueError("composite member identifiers must be unique")
+
+
+@dataclass(frozen=True)
+class CompositeAnalysisRequest:
+    """Broker-neutral analysis request interpreted only by its provider."""
+
+    evaluator: StrategyReference
+    evaluator_parameter_schema_version: str
+    evaluator_parameters: Mapping[str, object]
+    composite_id: str
+    composite_version: int
+    members: tuple[CompositeMember, ...]
+    bars: Sequence[KBar]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "evaluator_parameter_schema_version",
+            _required(
+                self.evaluator_parameter_schema_version,
+                "evaluator_parameter_schema_version",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "evaluator_parameters",
+            _immutable_mapping(self.evaluator_parameters),
+        )
+        object.__setattr__(
+            self,
+            "composite_id",
+            _required(self.composite_id, "composite_id"),
+        )
+        if self.composite_version < 1:
+            raise ValueError("composite_version must be positive")
+        object.__setattr__(self, "members", tuple(self.members))
+        object.__setattr__(self, "bars", tuple(self.bars))
+        if not self.members:
+            raise ValueError("composite analysis requires at least one member")
         member_ids = [member.member_id for member in self.members]
         if len(member_ids) != len(set(member_ids)):
             raise ValueError("composite member identifiers must be unique")
