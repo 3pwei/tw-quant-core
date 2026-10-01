@@ -2,7 +2,7 @@
 
 All notable changes follow Semantic Versioning.
 
-## 1.2.0 - Unreleased
+## 1.2.0 - 2026-10-02
 
 - Add exact-identity immutable parameter-normalization request/result contracts
   for provider-owned alias handling, optional-value normalization, and runtime
